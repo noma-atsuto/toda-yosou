@@ -13,7 +13,7 @@ PRED_DIR = os.path.join(ROOT, "predictions")       # その日の予想（締切
 MODEL_DIR = os.path.join(ROOT, "model")            # 学習済みモデル
 SITE_DATA = os.path.join(ROOT, "docs", "data")     # アプリが読むデータ
 
-BACKFILL_DAYS = 365          # 最初にさかのぼって集める日数
+BACKFILL_DAYS = 730          # 最初にさかのぼって集める日数
 TRAIN_DAYS = 540             # 学習に使う最大日数
 VALID_DAYS = 45              # 学習の良し悪しを確かめる直近の日数
 MIN_TRAIN_RACES = 150        # これ未満なら学習せず初期値で予想
