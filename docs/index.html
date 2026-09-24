@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="戸田予想">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<title>戸田予想</title>
+</head>
+<body>
+<header class="top">
+  <div class="top-row">
+    <button class="nav-btn" id="prevDay" aria-label="前の日">‹</button>
+    <div class="top-title">
+      <h1 id="dayTitle">戸田予想</h1>
+      <p id="daySub" class="muted">読み込み中…</p>
+    </div>
+    <button class="nav-btn" id="nextDay" aria-label="次の日">›</button>
+  </div>
+</header>
+
+<main>
+  <section id="view-today" class="view active"></section>
+  <section id="view-record" class="view"></section>
+  <section id="view-model" class="view"></section>
+</main>
+
+<nav class="tabbar" role="tablist">
+  <button class="tab active" data-view="today" role="tab">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h10" /></svg>予想</button>
+  <button class="tab" data-view="record" role="tab">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2" /></svg>成績</button>
+  <button class="tab" data-view="model" role="tab">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2M6 18l2-2m8-8 2-2" /><circle cx="12" cy="12" r="3.2" /></svg>学習</button>
+</nav>
+
+<div id="tip" class="tip" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

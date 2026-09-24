@@ -1,0 +1,204 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --ink: #15191f;
+  --ink-2: #4c5361;
+  --muted: #7a8190;
+  --line: #e2e5ea;
+  --accent: #1e5bd8;
+  --bar: #d6e3fb;
+  --good-bg: #dcf3e3; --good: #16703a;
+  --warn-bg: #fff0c7; --warn: #7a5600;
+  --bad-bg: #ffe1e1; --bad: #a32020;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --pos: #2a78d6; --neg: #e34948;
+  --grid: #e8eaee;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111418; --surface: #1a1e24; --surface-2: #232830;
+    --ink: #eef0f4; --ink-2: #c3c8d2; --muted: #9098a8; --line: #2d333d;
+    --accent: #7aa2ff; --bar: #24375e;
+    --good-bg: #173a24; --good: #7fd89c;
+    --warn-bg: #3d3113; --warn: #f0cd6c;
+    --bad-bg: #432020; --bad: #ff9b9b;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --pos: #3987e5; --neg: #e66767;
+    --grid: #2a3039;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111418; --surface: #1a1e24; --surface-2: #232830;
+  --ink: #eef0f4; --ink-2: #c3c8d2; --muted: #9098a8; --line: #2d333d;
+  --accent: #7aa2ff; --bar: #24375e;
+  --good-bg: #173a24; --good: #7fd89c;
+  --warn-bg: #3d3113; --warn: #f0cd6c;
+  --bad-bg: #432020; --bad: #ff9b9b;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --pos: #3987e5; --neg: #e66767;
+  --grid: #2a3039;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+  font-size: 15px; line-height: 1.5;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ヘッダー */
+.top {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(14px); -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  padding: calc(env(safe-area-inset-top) + 6px) 16px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.top-row { display: flex; align-items: center; gap: 8px; max-width: 720px; margin: 0 auto; }
+.top-title { flex: 1; text-align: center; min-width: 0; }
+.top h1 { font-size: 17px; margin: 0; font-weight: 700; }
+.top p { margin: 0; font-size: 12px; }
+.nav-btn {
+  width: 40px; height: 40px; border-radius: 20px; border: 0; background: var(--surface-2);
+  color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer;
+}
+.nav-btn:disabled { opacity: .3; }
+
+main { max-width: 720px; margin: 0 auto; padding: 12px 16px 24px; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* タブバー */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; justify-content: space-around;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  flex: 1; max-width: 140px; border: 0; background: none; color: var(--muted);
+  font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0; cursor: pointer;
+}
+.tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.tab.active { color: var(--accent); font-weight: 600; }
+
+/* カード */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin: 0 0 12px; }
+.card h2 { font-size: 15px; margin: 0 0 8px; }
+.card h3 { font-size: 13px; margin: 12px 0 6px; color: var(--ink-2); }
+.note { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.banner { font-size: 13px; background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+
+/* 艇番チップ（公式の枠色） */
+.chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 5px; font-weight: 700; font-size: 12px;
+  border: 1px solid rgba(128,128,128,.45); vertical-align: middle;
+}
+.b1 { background: #ffffff; color: #1a1a1a; } .b2 { background: #1f1f1f; color: #fff; border-color: #7a7a7a; }
+.b3 { background: #e0302d; color: #fff; } .b4 { background: #1e5bd8; color: #fff; }
+.b5 { background: #f2c500; color: #1a1a1a; } .b6 { background: #17984a; color: #fff; }
+.combo { display: inline-flex; align-items: center; gap: 2px; }
+.combo .sep { color: var(--muted); font-size: 11px; margin: 0 1px; }
+
+/* 注目レース */
+.picks { display: grid; gap: 8px; }
+.pick { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+.pick .rn { font-weight: 700; width: 34px; }
+.pick .why { font-size: 12px; color: var(--muted); margin-left: auto; text-align: right; }
+
+/* レース一覧 */
+.race { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin: 0 0 10px; overflow: hidden; }
+.race.next { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.race-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; }
+.race-head .rn { font-size: 18px; font-weight: 800; width: 40px; }
+.race-head .meta { flex: 1; min-width: 0; }
+.race-head .line1 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.race-head .line2 { margin-top: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.caret { color: var(--muted); transition: transform .2s; }
+.race.open .caret { transform: rotate(90deg); }
+.tag { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; }
+.t-solid { background: var(--good-bg); color: var(--good); }
+.t-mid { background: var(--warn-bg); color: var(--warn); }
+.t-open { background: var(--bad-bg); color: var(--bad); }
+.t-info { background: var(--surface-2); color: var(--ink-2); }
+.hit { background: var(--good-bg); color: var(--good); }
+.miss { background: var(--surface-2); color: var(--muted); }
+.race-body { display: none; padding: 0 14px 14px; border-top: 1px solid var(--line); }
+.race.open .race-body { display: block; }
+
+/* 出走表 */
+.boats { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.boats th { font-size: 10px; color: var(--muted); font-weight: 600; text-align: right; padding: 4px 3px; }
+.boats th:nth-child(-n+2) { text-align: left; }
+.boats td { padding: 6px 3px; border-top: 1px solid var(--line); text-align: right; font-size: 13px; }
+.boats td.name { text-align: left; max-width: 110px; }
+.boats td.name b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.boats td.name small { color: var(--muted); font-size: 11px; }
+.pbar { position: relative; display: inline-block; width: 64px; text-align: right; }
+.pbar i { position: absolute; left: 0; bottom: -3px; height: 4px; background: var(--accent); opacity: .55; border-radius: 2px; }
+.pbar span { position: relative; font-weight: 700; }
+.sub-stats { font-size: 11px; color: var(--muted); }
+
+.bets { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px 14px; margin-top: 12px; }
+.bets .full { grid-column: 1 / -1; }
+.bet { min-width: 0; }
+.bet h4 { font-size: 12px; margin: 0 0 4px; color: var(--ink-2); }
+.bet ol { list-style: none; margin: 0; padding: 0; }
+.bet li { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px solid var(--line); font-size: 12px; }
+.bet li .p { margin-left: auto; font-weight: 600; }
+.bet li .o { color: var(--muted); min-width: 46px; text-align: right; font-size: 11px; }
+.bet li { gap: 4px; }
+.bet .chip { width: 20px; height: 20px; font-size: 11px; }
+.bet li.win { background: var(--good-bg); border-radius: 6px; padding-left: 4px; }
+.result { margin-top: 12px; padding: 10px; background: var(--surface-2); border-radius: 10px; font-size: 13px; }
+.result .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* 成績 */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kpi { background: var(--surface-2); border-radius: 10px; padding: 10px; }
+.kpi .l { font-size: 11px; color: var(--muted); }
+.kpi .v { font-size: 22px; font-weight: 800; }
+.kpi .s { font-size: 11px; color: var(--ink-2); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { font-size: 11px; color: var(--muted); font-weight: 600; text-align: right; padding: 6px 4px; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl td { padding: 7px 4px; border-top: 1px solid var(--line); text-align: right; }
+.good-t { color: var(--good); font-weight: 700; }
+
+/* グラフ */
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .axis-t { fill: var(--muted); font-size: 10px; }
+.chart .ref { stroke: var(--ink-2); stroke-dasharray: 3 3; stroke-width: 1; }
+.chart .cross { stroke: var(--muted); stroke-width: 1; }
+.chart .lbl { font-size: 10px; fill: var(--ink-2); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--ink-2); margin: 2px 0 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+.tip {
+  position: fixed; z-index: 50; pointer-events: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); max-width: 220px;
+}
+.tip b { display: block; margin-bottom: 2px; }
+.tip .r { display: flex; align-items: center; gap: 6px; }
+.tip .r i { width: 10px; height: 3px; border-radius: 2px; }
+
+.imp { display: grid; grid-template-columns: 1fr 1fr; gap: 0; font-size: 12px; }
+.imp-row { display: contents; }
+.imp-row > div { padding: 5px 0; border-top: 1px solid var(--line); }
+.imp-bar { position: relative; height: 12px; }
+.imp-bar .axis { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.imp-bar i { position: absolute; top: 1px; height: 10px; border-radius: 3px; }
+.empty { text-align: center; color: var(--muted); padding: 40px 12px; }
+details summary { cursor: pointer; font-size: 13px; color: var(--accent); }

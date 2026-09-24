@@ -1,0 +1,50 @@
+# 毎日自動で「データ取得 → 学習 → 予想 → 結果照合」を行い、アプリのデータを更新する
+name: 自動予想
+
+on:
+  schedule:
+    # 時刻はUTC（日本時間 −9時間）で書きます
+    - cron: "30 23 * * *"        # 毎朝 8:30（日本時間）… 前日の結果で学習し直す
+    - cron: "*/20 0-8 * * *"     # 9:00〜17:40 に20分おき … 展示が出たら予想を更新
+    - cron: "0 10,13 * * *"      # 19:00・22:00 … 最終レースの結果照合と翌日の出走表
+  workflow_dispatch:             # 「Run workflow」ボタンで手動実行もできる
+    inputs:
+      mode:
+        description: "run=ふだんの実行 / setup=初回（過去1年分を集めて学習） / learn=学習し直し"
+        default: run
+        type: choice
+        options: [run, setup, learn]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-predict
+  cancel-in-progress: false
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 予想エンジンを実行
+        run: python -m engine.pipeline ${{ github.event.inputs.mode || 'run' }}
+
+      - name: 結果を保存（コミット）
+        run: |
+          git config user.name "toda-bot"
+          git config user.email "toda-bot@users.noreply.github.com"
+          git add store predictions model docs/data
+          if git diff --cached --quiet; then
+            echo "変更なし"
+          else
+            git commit -m "自動更新 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M')"
+            git pull --rebase --autostash || true
+            git push
+          fi
