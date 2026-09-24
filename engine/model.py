@@ -48,7 +48,10 @@ def race_features(race):
     """1レースの各艇の特徴量。返り値: [(艇番, 特徴量リスト, 表示用dict), ...]"""
     prog = race["program"]
     prev = race.get("preview") or {}
-    pv_boats = {b["racer_boat_number"]: b for b in (prev.get("boats") or [])}
+    prev_boats = prev.get("boats") or []
+    if isinstance(prev_boats, dict):          # 古いAPI形式（艇番文字列→辞書）への対応
+        prev_boats = list(prev_boats.values())
+    pv_boats = {b["racer_boat_number"]: b for b in prev_boats}
     wind = _num(prev.get("race_wind"), 2.0)
     wave = _num(prev.get("race_wave"), 2.0)
 
