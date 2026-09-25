@@ -339,9 +339,9 @@ function renderModel() {
 }
 
 /* ---------------- 日付の切り替え ---------------- */
-async function loadDay(date) {
+async function loadDay(date, keepOpen = false) {
   state.cur = date;
-  state.open.clear();
+  if (!keepOpen) state.open.clear();
   try { state.day = await getJSON(`days/${date.replaceAll("-", "")}.json`); }
   catch { state.day = null; }
   const i = state.dates.indexOf(date);
@@ -357,6 +357,14 @@ function pickDefaultDate() {
   return after[0] || state.dates[state.dates.length - 1];
 }
 
+async function loadData() {
+  const [index, record, model] = await Promise.all([getJSON("index.json"), getJSON("record.json").catch(() => null), getJSON("model.json").catch(() => null)]);
+  state.index = index; state.record = record; state.model = model;
+  state.dates = index.dates || [];
+  renderRecord();
+  renderModel();
+}
+
 async function init() {
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
     document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("active", x === t));
@@ -368,23 +376,34 @@ async function init() {
   $("#nextDay").addEventListener("click", () => { const i = state.dates.indexOf(state.cur); if (i < state.dates.length - 1) loadDay(state.dates[i + 1]); });
 
   try {
-    [state.index, state.record, state.model] = await Promise.all([getJSON("index.json"), getJSON("record.json").catch(() => null), getJSON("model.json").catch(() => null)]);
+    await loadData();
   } catch {
     $("#daySub").textContent = "データを読み込めませんでした";
     $("#view-today").innerHTML = `<div class="empty">データがまだありません。<br>初回セットアップが終わると表示されます。</div>`;
     return;
   }
-  state.dates = state.index.dates || [];
-  renderRecord();
-  renderModel();
   if (state.dates.length) await loadDay(pickDefaultDate());
   else renderToday();
 }
 
-// 画面に戻ってきたら最新にする（5分以上たっていたら）
-let lastLoad = Date.now();
+// 開いている間、裏で数分おきに最新データを取りに行き、見ている場所（開いているレースなど）を保ったまま画面だけ更新する。
+// ネットにつながらないとき（オフライン時）は、サービスワーカーが前回保存分を返すか、失敗しても何もせず今の画面を保つ。
+async function refresh() {
+  try {
+    await loadData();
+    if (state.dates.length) await loadDay(state.dates.includes(state.cur) ? state.cur : pickDefaultDate(), true);
+  } catch { /* オフライン等。今の画面のまま */ }
+}
+
+let lastRefresh = Date.now();
+function refreshIfVisible() {
+  if (document.visibilityState !== "visible") return;
+  lastRefresh = Date.now();
+  refresh();
+}
+setInterval(refreshIfVisible, 3 * 60 * 1000);
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && Date.now() - lastLoad > 5 * 60 * 1000) { lastLoad = Date.now(); location.reload(); }
+  if (document.visibilityState === "visible" && Date.now() - lastRefresh > 60 * 1000) refreshIfVisible();
 });
 
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
