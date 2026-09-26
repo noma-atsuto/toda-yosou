@@ -231,6 +231,65 @@ function lineChart(el, { labels, series, yFmt = (v) => pct(v, 0), ref = null, yM
 }
 
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const manYen = (v) => {
+  const a = Math.round(v);
+  if (Math.abs(a) >= 10000) return (a / 10000).toFixed(Math.abs(a) % 10000 === 0 ? 0 : 1) + "万円";
+  return yen(a);
+};
+
+/* ---------------- 棒グラフ（投資額・収支など、円ベースの推移） ---------------- */
+function barChart(el, { labels, series, legend = null, yFmt = manYen }) {
+  const W = 340, H = 190, L = 40, R = 10, T = 10, B = 22;
+  const all = series.flatMap((s) => s.values).filter((v) => v != null);
+  if (!all.length) { el.innerHTML = `<p class="note">データがたまると表示されます。</p>`; return; }
+  let lo = Math.min(0, ...all), hi = Math.max(0, ...all);
+  const pad = ((hi - lo) || 1) * 0.15;
+  hi += pad; if (lo < 0) lo -= pad;
+  const n = labels.length;
+  const groupW = (W - L - R) / n;
+  const barW = Math.max(2, Math.min(14, (groupW * 0.7) / series.length));
+  const y = (val) => T + (H - T - B) * (1 - (val - lo) / (hi - lo));
+  const zeroY = y(0);
+  let g = "";
+  for (let k = 0; k <= 4; k++) {
+    const val = lo + ((hi - lo) * k) / 4;
+    g += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${y(val)}" y2="${y(val)}"/>
+      <text class="axis-t" x="${L - 4}" y="${y(val) + 3}" text-anchor="end">${yFmt(val)}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(n / 6));
+  labels.forEach((lb, i) => {
+    if (i % step === 0 || i === n - 1) g += `<text class="axis-t" x="${L + groupW * (i + 0.5)}" y="${H - 6}" text-anchor="middle">${esc(lb)}</text>`;
+  });
+  series.forEach((s, si) => {
+    s.values.forEach((val, i) => {
+      if (val == null) return;
+      const x = L + groupW * i + (groupW - barW * series.length) / 2 + barW * si;
+      const yv = y(val), top = val >= 0 ? yv : zeroY, h = Math.max(Math.abs(yv - zeroY), 1);
+      const color = s.signColor ? css(val >= 0 ? "--pos" : "--neg") : s.color;
+      g += `<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" rx="1.5"/>`;
+    });
+  });
+  g += `<line x1="${L}" x2="${W - R}" y1="${zeroY}" y2="${zeroY}" stroke="var(--line)" stroke-width="1"/>`;
+  const items = legend || series.map((s) => ({ label: s.name, color: s.color }));
+  el.innerHTML = `<div class="legend">${items.map((it) => `<span><i style="background:${it.color}"></i>${esc(it.label)}</span>`).join("")}</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img">${g}
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+  const svg = el.querySelector("svg"), tip = $("#tip");
+  const move = (ev) => {
+    const b = svg.getBoundingClientRect();
+    const px = ((ev.clientX - b.left) / b.width) * W;
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - L) / groupW)));
+    tip.innerHTML = `<b>${esc(labels[i])}</b>` + series.map((s) => `<div class="r"><i style="background:${s.signColor ? css((s.values[i] ?? 0) >= 0 ? "--pos" : "--neg") : s.color}"></i>${esc(s.name)} <span class="num">${s.values[i] == null ? "-" : yen(Math.round(s.values[i]))}</span></div>`).join("");
+    tip.hidden = false;
+    const tx = Math.min(window.innerWidth - 230, Math.max(8, ev.clientX - 110));
+    tip.style.left = tx + "px"; tip.style.top = (b.top - 8 - tip.offsetHeight) + "px";
+  };
+  const hide = () => { tip.hidden = true; };
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("pointerdown", move);
+  svg.addEventListener("pointerleave", hide);
+  svg.addEventListener("pointerup", (ev) => { if (ev.pointerType !== "mouse") setTimeout(hide, 1500); });
+}
 
 /* ---------------- 成績 ---------------- */
 function renderRecord() {
@@ -249,6 +308,23 @@ function renderRecord() {
       <td class="num ${roi >= 1 ? "good-t" : ""}">${pct(roi)}</td><td class="num">${yen(t.ret[k] - t.cost[k])}</td></tr>`;
   }).join("");
   const days = rec.daily;
+
+  // 買い方5つを合計した、1日ごと・1か月ごとの投資額と収支
+  const dayAgg = days.map((d) => {
+    const cost = Object.values(d.cost).reduce((a, b) => a + b, 0);
+    const ret = Object.values(d.ret).reduce((a, b) => a + b, 0);
+    return { date: d.date, cost, profit: ret - cost };
+  });
+  const monthMap = new Map();
+  dayAgg.forEach((d) => {
+    const m = d.date.slice(0, 7);
+    const cur = monthMap.get(m) || { month: m, cost: 0, profit: 0 };
+    cur.cost += d.cost; cur.profit += d.profit;
+    monthMap.set(m, cur);
+  });
+  const monthAgg = [...monthMap.values()];
+  const recentDays = dayAgg.slice(-30);
+
   v.innerHTML = `
     <div class="card"><h2>本番の成績（締切前の予想と実際の結果を照合）</h2>
       <div class="kpis">
@@ -257,8 +333,11 @@ function renderRecord() {
       </div>
       <h3>毎レース100円ずつ機械的に買った場合</h3>
       <table class="tbl"><thead><tr><th>買い方</th><th>的中率</th><th>回収率</th><th>収支</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="note">回収率が100%未満なら、そのまま買い続けると損になる計算です。</p>
+      <p class="note">回収率が100%未満なら、そのまま買い続けると損になる計算です。上の5つの買い方をすべて合計した金額を、下のグラフでまとめています。</p>
     </div>
+    <div class="card"><h2>投資額と収支（日ごと・直近30日分）</h2><div class="chart" id="chMoneyDay"></div>
+      <p class="note">グレー＝5つの買い方を合計した投資額。青＝黒字の日、赤＝赤字の日の収支です。</p></div>
+    <div class="card"><h2>投資額と収支（月ごと）</h2><div class="chart" id="chMoneyMonth"></div></div>
     <div class="card"><h2>的中率の推移（直近7開催日の平均）</h2><div class="chart" id="chHit"></div></div>
     <div class="card"><h2>回収率の推移（累計）</h2><div class="chart" id="chRoi"></div>
       <p class="note">点線が100%（トントン）の線です。</p></div>
@@ -267,6 +346,23 @@ function renderRecord() {
       <tbody>${[...days].reverse().slice(0, 30).map((d) => `<tr><td>${d.date.slice(5).replace("-", "/")}</td><td class="num">${d.races}</td>
         <td class="num">${d.hits.win1}</td><td class="num">${d.hits.tri5}</td><td class="num">${d.hits.trio3}</td></tr>`).join("")}</tbody></table></div>
     ${validCard()}`;
+
+  barChart($("#chMoneyDay"), {
+    labels: recentDays.map((d) => d.date.slice(5).replace("-", "/")),
+    series: [
+      { name: "投資額", color: css("--muted"), values: recentDays.map((d) => d.cost) },
+      { name: "収支", signColor: true, values: recentDays.map((d) => d.profit) },
+    ],
+    legend: [{ label: "投資額", color: css("--muted") }, { label: "収支（黒字）", color: css("--pos") }, { label: "収支（赤字）", color: css("--neg") }],
+  });
+  barChart($("#chMoneyMonth"), {
+    labels: monthAgg.map((d) => d.month.slice(2).replace("-", "/")),
+    series: [
+      { name: "投資額", color: css("--muted"), values: monthAgg.map((d) => d.cost) },
+      { name: "収支", signColor: true, values: monthAgg.map((d) => d.profit) },
+    ],
+    legend: [{ label: "投資額", color: css("--muted") }, { label: "収支（黒字）", color: css("--pos") }, { label: "収支（赤字）", color: css("--neg") }],
+  });
 
   const roll = (k) => days.map((_, i) => {
     const w = days.slice(Math.max(0, i - 6), i + 1);
