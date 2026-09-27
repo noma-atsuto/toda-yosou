@@ -440,44 +440,39 @@ const KIND_LABEL = { exacta: "2連単", trifecta: "3連単", trio: "3連複" };
 function renderRanking() {
   const v = $("#view-ranking");
   const day = state.day;
-  const races = day ? day.races.filter((e) => e.result && !e.result.void) : [];
+  const races = day ? day.races : [];
   if (!races.length) {
-    v.innerHTML = `<div class="empty">まだ結果が出たレースがありません。<br>レースが終わると自動でランキングができます。</div>`;
+    v.innerHTML = `<div class="empty">まだ予想がありません。<br>開催日になると自動でランキングができます。</div>`;
     return;
   }
-  const hotRaces = races.map((e) => ({ rn: e.rn, payout: e.result.payouts?.trifecta }))
-    .filter((r) => r.payout).sort((a, b) => b.payout[1] - a.payout[1]);
+  // 単勝：本命（1番人気の予想）の1着率が高い順。結果を待たずレース前から見られる。
+  const winRank = races.map((e) => ({ rn: e.rn, bn: [...e.boats].sort((a, b) => b.p1 - a.p1)[0].bn, p: e.fav }))
+    .sort((a, b) => b.p - a.p);
 
+  // 熱い券（2連単・3連単・3連複）：各レースの本命の組み合わせのうち、的中確率が高い順。
   const tickets = [];
   races.forEach((e) => {
     ["exacta", "trifecta", "trio"].forEach((kind) => {
-      const p = e.result.payouts?.[kind];
-      if (p) tickets.push({ rn: e.rn, kind, combo: p[0], payout: p[1] });
+      const top1 = e.bets?.[kind]?.[0];
+      if (top1) tickets.push({ rn: e.rn, kind, combo: top1[0], p: top1[1] });
     });
   });
-  tickets.sort((a, b) => b.payout - a.payout);
-
-  const winTickets = races.map((e) => ({ rn: e.rn, payout: e.result.payouts?.win }))
-    .filter((r) => r.payout).sort((a, b) => b.payout[1] - a.payout[1]);
+  tickets.sort((a, b) => b.p - a.p);
 
   const rank = (n) => `<td class="num">${n}</td>`;
-  const raceRow = (r, i) => `<tr>${rank(i + 1)}<td>${r.rn}R</td><td>${combo(r.payout[0])}</td><td class="num">${yen(r.payout[1])}</td></tr>`;
-  const ticketRow = (t, i) => `<tr>${rank(i + 1)}<td>${t.rn}R</td><td>${esc(KIND_LABEL[t.kind])}</td><td>${combo(t.combo)}</td><td class="num">${yen(t.payout)}</td></tr>`;
-  const winRow = (r, i) => `<tr>${rank(i + 1)}<td>${r.rn}R</td><td>${chip(r.payout[0])}</td><td class="num">${yen(r.payout[1])}</td></tr>`;
+  const winRow = (r, i) => `<tr>${rank(i + 1)}<td>${r.rn}R</td><td>${chip(r.bn)}</td><td class="num">${pct(r.p)}</td></tr>`;
+  const ticketRow = (t, i) => `<tr>${rank(i + 1)}<td>${t.rn}R</td><td>${esc(KIND_LABEL[t.kind])}</td><td>${combo(t.combo)}</td><td class="num">${pct(t.p)}</td></tr>`;
 
   v.innerHTML = `
-    <div class="card"><h2>熱いレース ランキング</h2>
-      <p class="note">3連単の払戻金額が大きい順（そのレースがどれだけ荒れたか）。</p>
-      ${hotRaces.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>3連単</th><th>払戻金</th></tr></thead>
-        <tbody>${hotRaces.map(raceRow).join("")}</tbody></table>` : `<p class="muted">対象のレースがありません。</p>`}</div>
-    <div class="card"><h2>熱い券 ランキング</h2>
-      <p class="note">2連単・3連単・3連複の中で、払戻金額が大きい順（単勝は下の別ランキング）。</p>
-      ${tickets.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>券種</th><th>組番</th><th>払戻金</th></tr></thead>
-        <tbody>${tickets.slice(0, 10).map(ticketRow).join("")}</tbody></table>` : `<p class="muted">対象の券がありません。</p>`}</div>
     <div class="card"><h2>単勝 ランキング</h2>
-      <p class="note">単勝の払戻金額が大きい順。</p>
-      ${winTickets.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>艇</th><th>払戻金</th></tr></thead>
-        <tbody>${winTickets.map(winRow).join("")}</tbody></table>` : `<p class="muted">対象のレースがありません。</p>`}</div>`;
+      <p class="note">本命（1番人気の予想）の1着率が高い順。結果を待たず、予想の時点で見られます。</p>
+      <table class="tbl"><thead><tr><th>順位</th><th>R</th><th>艇</th><th>1着率</th></tr></thead>
+        <tbody>${winRank.map(winRow).join("")}</tbody></table></div>
+    <div class="card"><h2>熱い券 ランキング</h2>
+      <p class="note">2連単・3連単・3連複のうち、本命の組み合わせの的中確率が高い順（単勝は上の別ランキング）。</p>
+      ${tickets.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>券種</th><th>組番</th><th>的中確率</th></tr></thead>
+        <tbody>${tickets.slice(0, 10).map(ticketRow).join("")}</tbody></table>` : `<p class="muted">対象の券がありません。</p>`}</div>
+    <p class="note">確率は過去データからの推定で、的中を保証するものではありません。</p>`;
 }
 
 /* ---------------- 日付の切り替え ---------------- */
@@ -548,6 +543,26 @@ setInterval(refreshIfVisible, 3 * 60 * 1000);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - lastRefresh > 60 * 1000) refreshIfVisible();
 });
+
+// 左右にスワイプで前日・翌日へ切り替え
+(function setupSwipeDate() {
+  const THRESH = 60, RATIO = 1.5;
+  let sx = null, sy = null;
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) { sx = null; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (sx == null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    sx = null;
+    if (!state.dates.length || Math.abs(dx) < THRESH || Math.abs(dx) < Math.abs(dy) * RATIO) return;
+    const i = state.dates.indexOf(state.cur);
+    if (dx < 0 && i >= 0 && i < state.dates.length - 1) loadDay(state.dates[i + 1]);
+    else if (dx > 0 && i > 0) loadDay(state.dates[i - 1]);
+  }, { passive: true });
+})();
 
 // 右上の手動更新ボタン
 const refreshBtn = $("#refreshBtn");
