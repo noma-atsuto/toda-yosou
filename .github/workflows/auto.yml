@@ -9,6 +9,8 @@ on:
                                   # 開始を1分ずらしているのは、GitHub側で「ちょうど◯分・◯時」に
                                   # 予約が集中して遅れやすい、と案内されているのを避けるため
     - cron: "0 10,13 * * *"      # 19:00・22:00 … 最終レースの結果照合と翌日の出走表
+  repository_dispatch:           # 外部の定期実行サービスから「今すぐ実行して」と呼び出してもらう用
+    types: [poll]                # （GitHub純正のscheduleは混雑時に遅れるため、こちらの方が速く動く）
   workflow_dispatch:             # 「Run workflow」ボタンで手動実行もできる
     inputs:
       mode:
