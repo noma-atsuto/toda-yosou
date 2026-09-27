@@ -434,6 +434,52 @@ function renderModel() {
   });
 }
 
+/* ---------------- ランキング（その日の熱いレース・熱い券） ---------------- */
+const KIND_LABEL = { exacta: "2連単", trifecta: "3連単", trio: "3連複" };
+
+function renderRanking() {
+  const v = $("#view-ranking");
+  const day = state.day;
+  const races = day ? day.races.filter((e) => e.result && !e.result.void) : [];
+  if (!races.length) {
+    v.innerHTML = `<div class="empty">まだ結果が出たレースがありません。<br>レースが終わると自動でランキングができます。</div>`;
+    return;
+  }
+  const hotRaces = races.map((e) => ({ rn: e.rn, payout: e.result.payouts?.trifecta }))
+    .filter((r) => r.payout).sort((a, b) => b.payout[1] - a.payout[1]);
+
+  const tickets = [];
+  races.forEach((e) => {
+    ["exacta", "trifecta", "trio"].forEach((kind) => {
+      const p = e.result.payouts?.[kind];
+      if (p) tickets.push({ rn: e.rn, kind, combo: p[0], payout: p[1] });
+    });
+  });
+  tickets.sort((a, b) => b.payout - a.payout);
+
+  const winTickets = races.map((e) => ({ rn: e.rn, payout: e.result.payouts?.win }))
+    .filter((r) => r.payout).sort((a, b) => b.payout[1] - a.payout[1]);
+
+  const rank = (n) => `<td class="num">${n}</td>`;
+  const raceRow = (r, i) => `<tr>${rank(i + 1)}<td>${r.rn}R</td><td>${combo(r.payout[0])}</td><td class="num">${yen(r.payout[1])}</td></tr>`;
+  const ticketRow = (t, i) => `<tr>${rank(i + 1)}<td>${t.rn}R</td><td>${esc(KIND_LABEL[t.kind])}</td><td>${combo(t.combo)}</td><td class="num">${yen(t.payout)}</td></tr>`;
+  const winRow = (r, i) => `<tr>${rank(i + 1)}<td>${r.rn}R</td><td>${chip(r.payout[0])}</td><td class="num">${yen(r.payout[1])}</td></tr>`;
+
+  v.innerHTML = `
+    <div class="card"><h2>熱いレース ランキング</h2>
+      <p class="note">3連単の払戻金額が大きい順（そのレースがどれだけ荒れたか）。</p>
+      ${hotRaces.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>3連単</th><th>払戻金</th></tr></thead>
+        <tbody>${hotRaces.map(raceRow).join("")}</tbody></table>` : `<p class="muted">対象のレースがありません。</p>`}</div>
+    <div class="card"><h2>熱い券 ランキング</h2>
+      <p class="note">2連単・3連単・3連複の中で、払戻金額が大きい順（単勝は下の別ランキング）。</p>
+      ${tickets.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>券種</th><th>組番</th><th>払戻金</th></tr></thead>
+        <tbody>${tickets.slice(0, 10).map(ticketRow).join("")}</tbody></table>` : `<p class="muted">対象の券がありません。</p>`}</div>
+    <div class="card"><h2>単勝 ランキング</h2>
+      <p class="note">単勝の払戻金額が大きい順。</p>
+      ${winTickets.length ? `<table class="tbl"><thead><tr><th>順位</th><th>R</th><th>艇</th><th>払戻金</th></tr></thead>
+        <tbody>${winTickets.map(winRow).join("")}</tbody></table>` : `<p class="muted">対象のレースがありません。</p>`}</div>`;
+}
+
 /* ---------------- 日付の切り替え ---------------- */
 async function loadDay(date, keepOpen = false) {
   state.cur = date;
@@ -444,6 +490,7 @@ async function loadDay(date, keepOpen = false) {
   $("#prevDay").disabled = i <= 0;
   $("#nextDay").disabled = i < 0 || i >= state.dates.length - 1;
   renderToday();
+  renderRanking();
 }
 
 function pickDefaultDate() {
@@ -479,7 +526,7 @@ async function init() {
     return;
   }
   if (state.dates.length) await loadDay(pickDefaultDate());
-  else renderToday();
+  else { renderToday(); renderRanking(); }
 }
 
 // 開いている間、裏で数分おきに最新データを取りに行き、見ている場所（開いているレースなど）を保ったまま画面だけ更新する。
