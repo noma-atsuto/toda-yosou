@@ -549,5 +549,54 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && Date.now() - lastRefresh > 60 * 1000) refreshIfVisible();
 });
 
+// 右上の手動更新ボタン
+const refreshBtn = $("#refreshBtn");
+refreshBtn.addEventListener("click", async () => {
+  if (refreshBtn.classList.contains("spinning")) return;
+  refreshBtn.classList.add("spinning");
+  lastRefresh = Date.now();
+  await refresh();
+  refreshBtn.classList.remove("spinning");
+});
+
+// 画面のいちばん上でさらに下へ引っ張ると更新する（プルトゥリフレッシュ）
+(function setupPullToRefresh() {
+  const el = $("#pullIndicator");
+  const icon = el.querySelector(".pull-icon");
+  const THRESHOLD = 64, MAX = 100;
+  let startY = null, dy = 0, busy = false;
+  const setPull = (d) => {
+    el.style.opacity = Math.min(d / THRESHOLD, 1);
+    icon.style.transform = `translateY(${d - 30}px) rotate(${d * 3}deg)`;
+    el.classList.toggle("ready", d >= THRESHOLD);
+  };
+  const reset = () => { el.style.opacity = 0; icon.style.transform = ""; el.classList.remove("ready"); dy = 0; };
+  document.addEventListener("touchstart", (e) => {
+    startY = !busy && window.scrollY <= 0 ? e.touches[0].clientY : null;
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (startY == null || busy) return;
+    dy = e.touches[0].clientY - startY;
+    if (dy <= 0 || window.scrollY > 0) return;
+    e.preventDefault();
+    setPull(Math.min(dy, MAX));
+  }, { passive: false });
+  document.addEventListener("touchend", async () => {
+    if (startY == null) return;
+    const shouldRefresh = dy >= THRESHOLD;
+    startY = null;
+    if (shouldRefresh) {
+      busy = true;
+      el.classList.add("spinning");
+      el.style.opacity = 1; icon.style.transform = "translateY(16px)";
+      lastRefresh = Date.now();
+      await refresh();
+      el.classList.remove("spinning");
+      busy = false;
+    }
+    reset();
+  });
+})();
+
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 init();
