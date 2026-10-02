@@ -524,6 +524,9 @@ async function init() {
   else { renderToday(); renderRanking(); }
 }
 
+// グラフの吹き出しは位置を画面に固定して出すため、スクロールすると置き去りになる。スクロールしたら消す。
+window.addEventListener("scroll", () => { $("#tip").hidden = true; }, { passive: true });
+
 // 開いている間、裏で数分おきに最新データを取りに行き、見ている場所（開いているレースなど）を保ったまま画面だけ更新する。
 // ネットにつながらないとき（オフライン時）は、サービスワーカーが前回保存分を返すか、失敗しても何もせず今の画面を保つ。
 async function refresh() {
