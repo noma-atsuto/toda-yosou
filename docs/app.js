@@ -51,6 +51,11 @@ function renderToday() {
   const next = races.find((e) => { const t = closeTime(e); return t && t > now; });
   let html = "";
 
+  const today = state.index?.today;
+  if (today && !state.dates.includes(today)) {
+    html += `<div class="banner">本日（${fmtDate(today)}）は戸田の開催がありません。</div>`;
+  }
+
   if (!state.model?.info?.trained) {
     html += `<div class="banner">まだ学習前のため、一般的な傾向（初期値）で予想しています。</div>`;
   }
