@@ -220,6 +220,7 @@ function lineChart(el, { labels, series, yFmt = (v) => pct(v, 0), ref = null, yM
     cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
     tip.innerHTML = `<b>${esc(labels[i])}</b>` + series.map((s) => `<div class="r"><i style="background:${s.color}"></i>${esc(s.name)} <span class="num">${s.values[i] == null ? "-" : yFmt(s.values[i])}</span></div>`).join("");
     tip.hidden = false;
+    tipAnchorScrollY = window.scrollY;
     const tx = Math.min(window.innerWidth - 230, Math.max(8, ev.clientX - 110));
     tip.style.left = tx + "px"; tip.style.top = (b.top - 8 - tip.offsetHeight) + "px";
   };
@@ -281,6 +282,7 @@ function barChart(el, { labels, series, legend = null, yFmt = manYen }) {
     const i = Math.max(0, Math.min(n - 1, Math.floor((px - L) / groupW)));
     tip.innerHTML = `<b>${esc(labels[i])}</b>` + series.map((s) => `<div class="r"><i style="background:${s.signColor ? css((s.values[i] ?? 0) >= 0 ? "--pos" : "--neg") : s.color}"></i>${esc(s.name)} <span class="num">${s.values[i] == null ? "-" : yen(Math.round(s.values[i]))}</span></div>`).join("");
     tip.hidden = false;
+    tipAnchorScrollY = window.scrollY;
     const tx = Math.min(window.innerWidth - 230, Math.max(8, ev.clientX - 110));
     tip.style.left = tx + "px"; tip.style.top = (b.top - 8 - tip.offsetHeight) + "px";
   };
@@ -524,8 +526,13 @@ async function init() {
   else { renderToday(); renderRanking(); }
 }
 
-// グラフの吹き出しは位置を画面に固定して出すため、スクロールすると置き去りになる。スクロールしたら消す。
-window.addEventListener("scroll", () => { $("#tip").hidden = true; }, { passive: true });
+// グラフの吹き出しは位置を画面に固定して出すため、スクロールすると置き去りになる。
+// ただし「タップした瞬間の微妙な画面の揺れ」程度では消さない（long-press扱いになってしまうため）、
+// 吹き出しを出した時点から一定以上スクロールした場合だけ消す。
+let tipAnchorScrollY = null;
+window.addEventListener("scroll", () => {
+  if (tipAnchorScrollY != null && Math.abs(window.scrollY - tipAnchorScrollY) > 6) $("#tip").hidden = true;
+}, { passive: true });
 
 // 開いている間、裏で数分おきに最新データを取りに行き、見ている場所（開いているレースなど）を保ったまま画面だけ更新する。
 // ネットにつながらないとき（オフライン時）は、サービスワーカーが前回保存分を返すか、失敗しても何もせず今の画面を保つ。
